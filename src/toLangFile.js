@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { processDirectory, exploreTree, writeCSV, hashFilePath } = require('./common');
+const JSONbig = require('json-bigint');
 
 /**
  * Converts translatable data in JSON files to a single CSV file
@@ -30,7 +31,7 @@ function toLangFile(inputPath, csvFilePath) {
     if (stats.isDirectory()) {
         processDirectory(inputPath, processFile);
     } else if (stats.isFile() && path.extname(inputPath) === '.json') {
-        const jsonData = JSON.parse(fs.readFileSync(inputPath, 'utf8'));
+        const jsonData = JSONbig.parse(fs.readFileSync(inputPath, 'utf8'));
         const relativePath = path.relative(path.dirname(inputPath), inputPath).replace(/\\/g, '/');
         const hashedPath = hashFilePath(relativePath);
         processFile(jsonData, hashedPath, relativePath, inputPath);

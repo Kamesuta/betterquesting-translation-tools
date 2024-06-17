@@ -4,6 +4,7 @@ const crypto = require('crypto');
 const { parse } = require('csv-parse/sync');
 const { stringify } = require('csv-stringify/sync');
 const TRANSLATABLE_KEYS = require('./settings');
+const JSONbig = require('json-bigint');
 
 /**
  * Generates a hashed file path for unique identification
@@ -23,7 +24,7 @@ function hashFilePath(filePath) {
 function exploreTree(jsonData, filePath, callback) {
     function recursiveExplore(node, path) {
         for (const key in node) {
-            if (node.hasOwnProperty(key)) {
+            if (Object.hasOwnProperty.call(node, key)) {
                 const value = node[key];
                 const newPath = path ? `${path}.${key}` : key;
 
@@ -55,7 +56,7 @@ function processDirectory(inputDir, callback) {
             if (stats.isDirectory()) {
                 recursiveProcess(fullPath, baseDir);
             } else if (stats.isFile() && path.extname(file) === '.json') {
-                const jsonData = JSON.parse(fs.readFileSync(fullPath, 'utf8'));
+                const jsonData = JSONbig.parse(fs.readFileSync(fullPath, 'utf8'));
                 const relativePath = path.relative(baseDir, fullPath).replace(/\\/g, '/');
                 const hashedPath = hashFilePath(relativePath);
                 callback(jsonData, hashedPath, relativePath, fullPath);
@@ -92,7 +93,7 @@ function writeCSV(csvFilePath, data) {
  * @param {Object} data JSON data to write to the file
  */
 function writeJSON(outputJsonPath, data) {
-    fs.writeFileSync(outputJsonPath, JSON.stringify(data, null, 2));
+    fs.writeFileSync(outputJsonPath, JSONbig.stringify(data, null, 2));
 }
 
 module.exports = {
