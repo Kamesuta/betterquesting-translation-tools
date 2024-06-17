@@ -1,13 +1,16 @@
 const fs = require('fs');
+const path = require('path');
+const crypto = require('crypto');
 const { stringify } = require('csv-stringify/sync');
 const TRANSLATABLE_KEYS = require('./settings');
 
 /**
  * Converts translatable data in JSON data to CSV format
  * @param {*} jsonData JSON data
- * @returns {string} Data in CSV format
+ * @param {string} filePath Path to the JSON file
+ * @returns {Array} Rows of CSV data
  */
-function toLangFile(jsonData) {
+function toLangFile(jsonData, filePath) {
     const rows = [];
 
     // Recursive function to explore the JSON tree and extract translatable data
@@ -22,7 +25,7 @@ function toLangFile(jsonData) {
                     // Replace §◯ with [§◯] and \n with \\n
                     const replacedValue = value.replace(/(§[0-9a-f§])/g, '[$1]').replace(/\n/g, '\\n');
                     // Add https:// prefix to the path and write to CSV
-                    rows.push([`https://${newPath}`, replacedValue]);
+                    rows.push([filePath, `https://${newPath}`, replacedValue]);
                 } else if (typeof value === 'object') {
                     // If the value is an object, recursively explore it
                     exploreTree(value, newPath);
@@ -34,24 +37,53 @@ function toLangFile(jsonData) {
     // Explore the JSON data
     exploreTree(jsonData, '');
 
-    // Convert to CSV format and return
-    return stringify(rows);
+    return rows;
 }
 
-// Get file paths from command line arguments
-const [jsonFilePath, csvFilePath] = process.argv.slice(2);
+function hashFilePath(filePath) {
+    return `https://${crypto.createHash('md5').update(filePath).digest('hex').substring(0, 7)}`;
+}
 
-if (!jsonFilePath || !csvFilePath) {
-    console.error('Usage: node toLangFile.js <path to JSON file> <path to output CSV file>');
+function processJsonFiles(inputDir, csvFilePath) {
+    const rows = [];
+
+    function processDirectory(directory, baseDir) {
+        const files = fs.readdirSync(directory);
+
+        files.forEach(file => {
+            const fullPath = path.join(directory, file);
+            const stats = fs.statSync(fullPath);
+
+            if (stats.isDirectory()) {
+                // Recursively process directories
+                processDirectory(fullPath, baseDir);
+            } else if (stats.isFile() && path.extname(file) === '.json') {
+                // Process JSON files
+                const jsonData = JSON.parse(fs.readFileSync(fullPath, 'utf8'));
+                // Get relative path and replace backslashes with forward slashes
+                const relativePath = path.relative(baseDir, fullPath).replace(/\\/g, '/');
+                const hashedPath = hashFilePath(relativePath);
+                const fileRows = toLangFile(jsonData, hashedPath);
+                rows.push(...fileRows);
+            }
+        });
+    }
+
+    processDirectory(inputDir, inputDir);
+
+    // Convert to CSV format and write to file
+    const csvData = stringify(rows);
+    fs.writeFileSync(csvFilePath, csvData);
+    console.log(`CSV file written to ${csvFilePath}`);
+}
+
+// Get directory paths from command line arguments
+const [inputDir, csvFilePath] = process.argv.slice(2);
+
+if (!inputDir || !csvFilePath) {
+    console.error('Usage: node toLangFile.js <path to input directory> <path to output CSV file>');
     process.exit(1);
 }
 
-// Read the JSON file
-const quests = JSON.parse(fs.readFileSync(jsonFilePath, 'utf8'));
-
-// Convert to CSV
-const result = toLangFile(quests);
-
-// Write the CSV file
-fs.writeFileSync(csvFilePath, result);
-console.log(`CSV file written to ${csvFilePath}`);
+// Process the input directory
+processJsonFiles(inputDir, csvFilePath);
