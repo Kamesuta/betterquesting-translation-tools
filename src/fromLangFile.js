@@ -1,49 +1,16 @@
 const fs = require('fs');
 const path = require('path');
-const crypto = require('crypto');
-const { parse } = require('csv-parse/sync');
+const { processDirectory, exploreTree, readCSV, writeJSON } = require('./common');
 const TRANSLATABLE_KEYS = require('./settings');
 
 /**
- * Merges translated CSV data with the original JSON data and applies the translation
- * @param {*} jsonData original JSON data
- * @param {Object} translatedDataMap Map of translated data
- * @param {string} filePath Path to the JSON file
+ * Merges translated CSV data with the original JSON files and applies the translations
+ * @param {string} inputJsonDir The directory containing original JSON files
+ * @param {string} csvFilePath Path to the translated CSV file
+ * @param {string} outputJsonDir Path to the output directory for translated JSON files
  */
-function fromLangFile(jsonData, translatedDataMap, filePath) {
-    // Recursive function to explore the JSON tree and apply translation data
-    function applyTranslation(node, path) {
-        for (const key in node) {
-            if (node.hasOwnProperty(key)) {
-                const value = node[key];
-                const newPath = path ? `${path}.${key}` : key;
-
-                if (typeof value === 'object' && value !== null) {
-                    // If the value is an object, recursively apply translation
-                    applyTranslation(value, newPath);
-                } else if (TRANSLATABLE_KEYS.includes(key)) {
-                    // Apply translation data if available
-                    const translationKey = `${filePath} https://${newPath}`;
-                    if (translatedDataMap.hasOwnProperty(translationKey)) {
-                        node[key] = translatedDataMap[translationKey].replace(/\[(§[0-9a-f§])\]/g, '$1').replace(/\\n/g, '\n');
-                    } else {
-                        console.log(`No translation found for key: ${translationKey}`);
-                    }
-                }
-            }
-        }
-    }
-
-    // Apply the translation to the JSON data
-    applyTranslation(jsonData, '');
-}
-
-function hashFilePath(filePath) {
-    return `https://${crypto.createHash('md5').update(filePath).digest('hex').substring(0, 7)}`;
-}
-
-function processTranslationFiles(inputJsonDir, csvFilePath, outputJsonDir) {
-    const translatedRows = parse(fs.readFileSync(csvFilePath, 'utf8'));
+function fromLangFile(inputJsonDir, csvFilePath, outputJsonDir) {
+    const translatedRows = readCSV(csvFilePath);
     const translatedDataMap = {};
 
     // Parse the CSV data and map translatable keys and values
@@ -53,35 +20,40 @@ function processTranslationFiles(inputJsonDir, csvFilePath, outputJsonDir) {
         translatedDataMap[key] = value;
     });
 
-    function processDirectory(directory, baseDir, outputDirectory) {
-        const files = fs.readdirSync(directory);
-
-        files.forEach(file => {
-            const fullPathJson = path.join(directory, file);
-            const stats = fs.statSync(fullPathJson);
-
-            if (stats.isDirectory()) {
-                // Recursively process directories
-                const newOutputDirectory = path.join(outputDirectory, file);
-                if (!fs.existsSync(newOutputDirectory)) {
-                    fs.mkdirSync(newOutputDirectory);
-                }
-                processDirectory(fullPathJson, baseDir, newOutputDirectory);
-            } else if (stats.isFile() && path.extname(file) === '.json') {
-                // Process JSON files
-                const jsonData = JSON.parse(fs.readFileSync(fullPathJson, 'utf8'));
-                // Get relative path and replace backslashes with forward slashes
-                const relativePath = path.relative(baseDir, fullPathJson).replace(/\\/g, '/');
-                const hashedPath = hashFilePath(relativePath);
-                fromLangFile(jsonData, translatedDataMap, hashedPath);
-                const outputJsonPath = path.join(outputDirectory, file);
-                fs.writeFileSync(outputJsonPath, JSON.stringify(jsonData, null, 2));
-                console.log(`Translated JSON file written to ${outputJsonPath}`);
+    /**
+     * Applies translations to JSON data
+     * @param {Object} jsonData JSON data
+     * @param {string} hashedPath Hashed file path
+     */
+    function applyTranslation(jsonData, hashedPath) {
+        exploreTree(jsonData, hashedPath, (node, key, value, newPath) => {
+            const translationKey = `${hashedPath} https://${newPath}`;
+            if (translatedDataMap.hasOwnProperty(translationKey)) {
+                node[key] = translatedDataMap[translationKey].replace(/\[(§[0-9a-f§])\]/g, '$1').replace(/\\n/g, '\n');
+            } else {
+                console.log(`No translation found for key: ${translationKey}`);
             }
         });
     }
 
-    processDirectory(inputJsonDir, inputJsonDir, outputJsonDir);
+    /**
+     * Processes each JSON file to apply translations
+     * @param {Object} jsonData JSON data
+     * @param {string} hashedPath Hashed file path
+     * @param {string} relativePath Relative file path
+     * @param {string} fullPath Full file path
+     */
+    function processFile(jsonData, hashedPath, relativePath, fullPath) {
+        applyTranslation(jsonData, hashedPath);
+        const outputJsonPath = path.join(outputJsonDir, relativePath);
+        const outputJsonDirPath = path.dirname(outputJsonPath);
+        if (!fs.existsSync(outputJsonDirPath)) {
+            fs.mkdirSync(outputJsonDirPath, { recursive: true });
+        }
+        writeJSON(outputJsonPath, jsonData);
+    }
+
+    processDirectory(inputJsonDir, processFile);
 }
 
 // Get directory paths from command line arguments
@@ -96,5 +68,4 @@ if (!fs.existsSync(outputJsonDir)) {
     fs.mkdirSync(outputJsonDir);
 }
 
-// Process the input directories
-processTranslationFiles(inputJsonDir, csvFilePath, outputJsonDir);
+fromLangFile(inputJsonDir, csvFilePath, outputJsonDir);
