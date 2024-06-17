@@ -39,12 +39,13 @@ This project consists of two main scripts:
 ### Conversion Steps
 
 1. Place the JSON data of BetterQuesting in `toLang/DefaultQuests.json`.
-     - Usually located at `config/betterquesting/DefaultQuests.json`.
+    - Usually located at `config/betterquesting/DefaultQuests.json`.
+    - If the data is split into multiple files, place them in the `toLang/DefaultQuests` folder.
 
 2. Use `toLangFile.js` to extract translatable text and write it to a CSV file.
 
     ```bash
-    # node src/toLangFile.js <path to input JSON file> <path to output CSV file>
+    # node src/toLangFile.js <path to input directory or file> <path to output CSV file>
     node src/toLangFile.js toLang/DefaultQuests.json toLang/lang.csv
     ```
 
@@ -69,12 +70,13 @@ This project consists of two main scripts:
 6. Use `fromLangFile.js` to apply the translated CSV data to the original JSON data.
 
     ```bash
-    # node src/fromLangFile.js <path to input JSON file> <path to input CSV file> <path to output JSON file>
+    # node src/fromLangFile.js <path to input JSON directory or file> <path to input CSV file> <path to output JSON directory>
     node src/fromLangFile.js toLang/DefaultQuests.json fromLang/lang.csv fromLang/DefaultQuests.json
     ```
 
 7. Use `fromLang/DefaultQuests.json` as the JSON data for BetterQuesting.
     - Usually placed at `config/betterquesting/DefaultQuests.json`.
+    - If the data is split into multiple files, place them in the `config/betterquesting/DefaultQuests` folder.
 
 ## Script Details
 

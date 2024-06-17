@@ -39,12 +39,13 @@ JSON データから翻訳可能なテキストを抽出し、翻訳後のテキ
 ### 変換の手順
 
 1. BetterQuesting の JSON データを `toLang/DefaultQuests.json` に配置します。
-     - 通常は `config/betterquesting/DefaultQuests.json` にあります。
+    - 通常は `config/betterquesting/DefaultQuests.json` にあります。
+    - 複数ファイルに分かれている場合、フォルダを `toLang/DefaultQuests` に配置します。
 
 2. toLangFile.js を使用して、翻訳可能なテキストを抽出して CSV ファイルに書き出します。
 
     ```bash
-    # node src/toLangFile.js <path to input JSON file> <path to output CSV file>
+    # node src/toLangFile.js <path to input directory or file> <path to output CSV file>
     node src/toLangFile.js toLang/DefaultQuests.json toLang/lang.csv
     ```
 
@@ -70,12 +71,13 @@ JSON データから翻訳可能なテキストを抽出し、翻訳後のテキ
 6. fromLangFile.js を使用して、翻訳された CSV データを元の JSON データに適用します。
 
     ```bash
-    # node src/fromLangFile.js <path to input JSON file> <path to input CSV file> <path to output JSON file>
+    # node src/fromLangFile.js <path to input JSON directory or file> <path to input CSV file> <path to output JSON directory>
     node src/fromLangFile.js toLang/DefaultQuests.json fromLang/lang.csv fromLang/DefaultQuests.json
     ```
 
 7. `fromLang/DefaultQuests.json` を BetterQuesting の JSON データとして使用します。
     - 通常は `config/betterquesting/DefaultQuests.json` に配置します。
+    - 複数ファイルに分かれている場合、フォルダを `config/betterquesting/DefaultQuests` に配置します。
 
 ## スクリプトの詳細
 
