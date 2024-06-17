@@ -20,7 +20,8 @@ function toLangFile(inputPath, csvFilePath) {
     function processFile(jsonData, hashedPath, relativePath, fullPath) {
         exploreTree(jsonData, hashedPath, (node, key, value, newPath) => {
             const replacedValue = value.replace(/(§[0-9a-f§])/g, '[$1]').replace(/\n/g, '\\n');
-            rows.push([hashedPath, `https://${newPath}`, replacedValue]);
+            const translationKey = hashFilePath(newPath);
+            rows.push([hashedPath, translationKey, replacedValue]);
         });
     }
 

@@ -27,7 +27,7 @@ function fromLangFile(inputJsonPath, csvFilePath, outputJsonPath) {
      */
     function applyTranslation(jsonData, hashedPath) {
         exploreTree(jsonData, hashedPath, (node, key, value, newPath) => {
-            const translationKey = `${hashedPath} https://${newPath}`;
+            const translationKey = `${hashedPath} ${hashFilePath(newPath)}`;
             if (translatedDataMap.hasOwnProperty(translationKey)) {
                 node[key] = translatedDataMap[translationKey].replace(/\[(§[0-9a-f§])\]/g, '$1').replace(/\\n/g, '\n');
             } else {
