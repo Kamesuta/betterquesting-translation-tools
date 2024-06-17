@@ -93,7 +93,6 @@ function writeCSV(csvFilePath, data) {
  */
 function writeJSON(outputJsonPath, data) {
     fs.writeFileSync(outputJsonPath, JSON.stringify(data, null, 2));
-    console.log(`Translated JSON file written to ${outputJsonPath}`);
 }
 
 module.exports = {

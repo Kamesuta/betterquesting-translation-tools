@@ -1,11 +1,13 @@
-const { processDirectory, exploreTree, writeCSV } = require('./common');
+const fs = require('fs');
+const path = require('path');
+const { processDirectory, exploreTree, writeCSV, hashFilePath } = require('./common');
 
 /**
  * Converts translatable data in JSON files to a single CSV file
- * @param {string} inputDir The directory containing JSON files
+ * @param {string} inputPath The directory or file containing JSON files
  * @param {string} csvFilePath Path to the output CSV file
  */
-function toLangFile(inputDir, csvFilePath) {
+function toLangFile(inputPath, csvFilePath) {
     const rows = [];
 
     /**
@@ -22,16 +24,29 @@ function toLangFile(inputDir, csvFilePath) {
         });
     }
 
-    processDirectory(inputDir, processFile);
+    const stats = fs.statSync(inputPath);
+
+    if (stats.isDirectory()) {
+        processDirectory(inputPath, processFile);
+    } else if (stats.isFile() && path.extname(inputPath) === '.json') {
+        const jsonData = JSON.parse(fs.readFileSync(inputPath, 'utf8'));
+        const relativePath = path.relative(path.dirname(inputPath), inputPath).replace(/\\/g, '/');
+        const hashedPath = hashFilePath(relativePath);
+        processFile(jsonData, hashedPath, relativePath, inputPath);
+    } else {
+        console.error('Invalid input path. Must be a directory or a JSON file.');
+        process.exit(1);
+    }
+
     writeCSV(csvFilePath, rows);
 }
 
-// Get directory paths from command line arguments
-const [inputDir, csvFilePath] = process.argv.slice(2);
+// Get directory or file paths from command line arguments
+const [inputPath, csvFilePath] = process.argv.slice(2);
 
-if (!inputDir || !csvFilePath) {
-    console.error('Usage: node toLangFile.js <path to input directory> <path to output CSV file>');
+if (!inputPath || !csvFilePath) {
+    console.error('Usage: node toLangFile.js <path to input directory or file> <path to output CSV file>');
     process.exit(1);
 }
 
-toLangFile(inputDir, csvFilePath);
+toLangFile(inputPath, csvFilePath);

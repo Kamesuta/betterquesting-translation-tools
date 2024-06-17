@@ -1,15 +1,15 @@
 const fs = require('fs');
 const path = require('path');
-const { processDirectory, exploreTree, readCSV, writeJSON } = require('./common');
+const { processDirectory, exploreTree, readCSV, writeJSON, hashFilePath } = require('./common');
 const TRANSLATABLE_KEYS = require('./settings');
 
 /**
  * Merges translated CSV data with the original JSON files and applies the translations
- * @param {string} inputJsonDir The directory containing original JSON files
+ * @param {string} inputJsonPath The directory or file containing original JSON files
  * @param {string} csvFilePath Path to the translated CSV file
- * @param {string} outputJsonDir Path to the output directory for translated JSON files
+ * @param {string} outputJsonPath Path to the output directory for translated JSON files
  */
-function fromLangFile(inputJsonDir, csvFilePath, outputJsonDir) {
+function fromLangFile(inputJsonPath, csvFilePath, outputJsonPath) {
     const translatedRows = readCSV(csvFilePath);
     const translatedDataMap = {};
 
@@ -45,27 +45,41 @@ function fromLangFile(inputJsonDir, csvFilePath, outputJsonDir) {
      */
     function processFile(jsonData, hashedPath, relativePath, fullPath) {
         applyTranslation(jsonData, hashedPath);
-        const outputJsonPath = path.join(outputJsonDir, relativePath);
-        const outputJsonDirPath = path.dirname(outputJsonPath);
-        if (!fs.existsSync(outputJsonDirPath)) {
-            fs.mkdirSync(outputJsonDirPath, { recursive: true });
+        const outputFilePath = path.join(outputJsonPath, relativePath);
+        const outputFileDir = path.dirname(outputFilePath);
+        if (!fs.existsSync(outputFileDir)) {
+            fs.mkdirSync(outputFileDir, { recursive: true });
         }
-        writeJSON(outputJsonPath, jsonData);
+        writeJSON(outputFilePath, jsonData);
     }
 
-    processDirectory(inputJsonDir, processFile);
+    const stats = fs.statSync(inputJsonPath);
+
+    if (stats.isDirectory()) {
+        processDirectory(inputJsonPath, processFile);
+    } else if (stats.isFile() && path.extname(inputJsonPath) === '.json') {
+        const jsonData = JSON.parse(fs.readFileSync(inputJsonPath, 'utf8'));
+        const relativePath = path.relative(path.dirname(inputJsonPath), inputJsonPath).replace(/\\/g, '/');
+        const hashedPath = hashFilePath(relativePath);
+        processFile(jsonData, hashedPath, relativePath, inputJsonPath);
+    } else {
+        console.error('Invalid input path. Must be a directory or a JSON file.');
+        process.exit(1);
+    }
+
+    console.log(`Translation completed and written to ${outputJsonPath}`);
 }
 
-// Get directory paths from command line arguments
-const [inputJsonDir, csvFilePath, outputJsonDir] = process.argv.slice(2);
+// Get directory or file paths from command line arguments
+const [inputJsonPath, csvFilePath, outputJsonPath] = process.argv.slice(2);
 
-if (!inputJsonDir || !csvFilePath || !outputJsonDir) {
-    console.error('Usage: node fromLangFile.js <path to input JSON directory> <path to input CSV file> <path to output JSON directory>');
+if (!inputJsonPath || !csvFilePath || !outputJsonPath) {
+    console.error('Usage: node fromLangFile.js <path to input JSON directory or file> <path to input CSV file> <path to output JSON directory>');
     process.exit(1);
 }
 
-if (!fs.existsSync(outputJsonDir)) {
-    fs.mkdirSync(outputJsonDir);
+if (!fs.existsSync(outputJsonPath)) {
+    fs.mkdirSync(outputJsonPath);
 }
 
-fromLangFile(inputJsonDir, csvFilePath, outputJsonDir);
+fromLangFile(inputJsonPath, csvFilePath, outputJsonPath);
