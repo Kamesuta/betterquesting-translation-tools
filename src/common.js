@@ -41,9 +41,9 @@ function exploreTree(jsonData, filePath, callback) {
 }
 
 /**
- * Recursively processes a directory and executes a callback for each JSON file
+ * Recursively processes a directory and executes a callback for each file
  * @param {string} inputDir The directory to process
- * @param {Function} callback Callback function to execute for each JSON file
+ * @param {Function} callback Callback function to execute for each file
  */
 function processDirectory(inputDir, callback) {
     function recursiveProcess(directory, baseDir) {
@@ -55,11 +55,9 @@ function processDirectory(inputDir, callback) {
 
             if (stats.isDirectory()) {
                 recursiveProcess(fullPath, baseDir);
-            } else if (stats.isFile() && path.extname(file) === '.json') {
-                const jsonData = JSONbig.parse(fs.readFileSync(fullPath, 'utf8'));
+            } else if (stats.isFile()) {
                 const relativePath = path.relative(baseDir, fullPath).replace(/\\/g, '/');
-                const hashedPath = hashFilePath(relativePath);
-                callback(jsonData, hashedPath, relativePath, fullPath);
+                callback(relativePath, fullPath);
             }
         });
     }

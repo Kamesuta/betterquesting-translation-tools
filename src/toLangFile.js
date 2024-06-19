@@ -28,13 +28,21 @@ function toLangFile(inputPath, csvFilePath) {
 
     const stats = fs.statSync(inputPath);
 
+    function processFileOrCopy(relativePath, fullPath) {
+        if (path.extname(fullPath) === '.json') {
+            const jsonData = JSONbig.parse(fs.readFileSync(fullPath, 'utf8'));
+            const hashedPath = hashFilePath(relativePath);
+            processFile(jsonData, hashedPath, relativePath, fullPath);
+        }
+    }
+
     if (stats.isDirectory()) {
-        processDirectory(inputPath, processFile);
+        processDirectory(inputPath, (relativePath, fullPath) => {
+            processFileOrCopy(relativePath, fullPath);
+        });
     } else if (stats.isFile() && path.extname(inputPath) === '.json') {
-        const jsonData = JSONbig.parse(fs.readFileSync(inputPath, 'utf8'));
         const relativePath = path.relative(path.dirname(inputPath), inputPath).replace(/\\/g, '/');
-        const hashedPath = hashFilePath(relativePath);
-        processFile(jsonData, hashedPath, relativePath, inputPath);
+        processFileOrCopy(relativePath, inputPath);
     } else {
         console.error('Invalid input path. Must be a directory or a JSON file.');
         process.exit(1);
@@ -42,7 +50,6 @@ function toLangFile(inputPath, csvFilePath) {
 
     writeCSV(csvFilePath, rows);
 }
-
 // Get directory or file paths from command line arguments
 const [inputPath, csvFilePath] = process.argv.slice(2);
 

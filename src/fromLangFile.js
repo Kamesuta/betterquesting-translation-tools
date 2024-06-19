@@ -53,15 +53,44 @@ function fromLangFile(inputJsonPath, csvFilePath, outputJsonPath) {
         writeJSON(outputFilePath, jsonData);
     }
 
+    /**
+     * Copies non-JSON files to the output directory
+     * @param {string} relativePath Relative file path
+     * @param {string} fullPath Full file path
+     */
+    function copyFile(relativePath, fullPath) {
+        const outputFilePath = path.join(outputJsonPath, relativePath);
+        const outputFileDir = path.dirname(outputFilePath);
+        if (!fs.existsSync(outputFileDir)) {
+            fs.mkdirSync(outputFileDir, { recursive: true });
+        }
+        fs.copyFileSync(fullPath, outputFilePath);
+    }
+
+    /**
+     * Processes a file or copies it depending on its extension
+     * @param {string} relativePath Relative file path
+     * @param {string} fullPath Full file path
+     */
+    function processFileOrCopy(relativePath, fullPath) {
+        if (path.extname(fullPath) === '.json') {
+            const jsonData = JSONbig.parse(fs.readFileSync(fullPath, 'utf8'));
+            const hashedPath = hashFilePath(relativePath);
+            processFile(jsonData, hashedPath, relativePath, fullPath);
+        } else {
+            copyFile(relativePath, fullPath);
+        }
+    }
+
     const stats = fs.statSync(inputJsonPath);
 
     if (stats.isDirectory()) {
-        processDirectory(inputJsonPath, processFile);
-    } else if (stats.isFile() && path.extname(inputJsonPath) === '.json') {
-        const jsonData = JSONbig.parse(fs.readFileSync(inputJsonPath, 'utf8'));
+        processDirectory(inputJsonPath, (relativePath, fullPath) => {
+            processFileOrCopy(relativePath, fullPath);
+        });
+    } else if (stats.isFile()) {
         const relativePath = path.relative(path.dirname(inputJsonPath), inputJsonPath).replace(/\\/g, '/');
-        const hashedPath = hashFilePath(relativePath);
-        processFile(jsonData, hashedPath, relativePath, inputJsonPath);
+        processFileOrCopy(relativePath, inputJsonPath);
     } else {
         console.error('Invalid input path. Must be a directory or a JSON file.');
         process.exit(1);
