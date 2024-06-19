@@ -86,6 +86,15 @@ function writeCSV(csvFilePath, data) {
 }
 
 /**
+ * Reads JSON data from a file
+ * @param {string} jsonFilePath Path to the JSON file
+ * @returns {Object} Parsed JSON data
+ */
+function readJSON(jsonFilePath) {
+    return JSONbig.parse(fs.readFileSync(jsonFilePath, 'utf8'));
+}
+
+/**
  * Writes JSON data to a file
  * @param {string} outputJsonPath Path to the output JSON file
  * @param {Object} data JSON data to write to the file
@@ -100,5 +109,6 @@ module.exports = {
     processDirectory,
     readCSV,
     writeCSV,
+    readJSON,
     writeJSON
 };

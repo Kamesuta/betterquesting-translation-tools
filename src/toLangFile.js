@@ -1,7 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const { processDirectory, exploreTree, writeCSV, hashFilePath } = require('./common');
-const JSONbig = require('json-bigint');
+const { processDirectory, exploreTree, writeCSV, hashFilePath, readJSON } = require('./common');
 
 /**
  * Converts translatable data in JSON files to a single CSV file
@@ -26,15 +25,15 @@ function toLangFile(inputPath, csvFilePath) {
         });
     }
 
-    const stats = fs.statSync(inputPath);
-
     function processFileOrCopy(relativePath, fullPath) {
         if (path.extname(fullPath) === '.json') {
-            const jsonData = JSONbig.parse(fs.readFileSync(fullPath, 'utf8'));
+            const jsonData = readJSON(fullPath);
             const hashedPath = hashFilePath(relativePath);
             processFile(jsonData, hashedPath, relativePath, fullPath);
         }
     }
+
+    const stats = fs.statSync(inputPath);
 
     if (stats.isDirectory()) {
         processDirectory(inputPath, (relativePath, fullPath) => {

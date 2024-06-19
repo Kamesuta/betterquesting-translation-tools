@@ -1,7 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const { processDirectory, exploreTree, readCSV, writeJSON, hashFilePath } = require('./common');
-const JSONbig = require('json-bigint');
+const { processDirectory, exploreTree, readCSV, writeJSON, hashFilePath, readJSON } = require('./common');
 
 /**
  * Merges translated CSV data with the original JSON files and applies the translations
@@ -74,7 +73,7 @@ function fromLangFile(inputJsonPath, csvFilePath, outputJsonPath) {
      */
     function processFileOrCopy(relativePath, fullPath) {
         if (path.extname(fullPath) === '.json') {
-            const jsonData = JSONbig.parse(fs.readFileSync(fullPath, 'utf8'));
+            const jsonData = readJSON(fullPath);
             const hashedPath = hashFilePath(relativePath);
             processFile(jsonData, hashedPath, relativePath, fullPath);
         } else {
