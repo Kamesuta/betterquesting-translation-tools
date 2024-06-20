@@ -3,7 +3,7 @@ const path = require('path');
 const crypto = require('crypto');
 const { parse } = require('csv-parse/sync');
 const { stringify } = require('csv-stringify/sync');
-const TRANSLATABLE_KEYS = require('./settings');
+const { TRANSLATABLE_KEYS } = require('./settings');
 const JSONbig = require('json-bigint');
 
 /**
@@ -55,7 +55,7 @@ function processDirectory(inputDir, callback) {
 
             if (stats.isDirectory()) {
                 recursiveProcess(fullPath, baseDir);
-            } else if (stats.isFile()) {
+            } else {
                 const relativePath = path.relative(baseDir, fullPath).replace(/\\/g, '/');
                 callback(relativePath, fullPath);
             }
