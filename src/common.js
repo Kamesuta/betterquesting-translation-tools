@@ -30,7 +30,7 @@ function exploreTree(jsonData, filePath, callback) {
 
                 if (typeof value === 'object' && value !== null) {
                     recursiveExplore(value, newPath);
-                } else if (TRANSLATABLE_KEYS.includes(key)) {
+                } else if (TRANSLATABLE_KEYS.some(key => newPath.endsWith(key))) {
                     callback(node, key, value, newPath);
                 }
             }
